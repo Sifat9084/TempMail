@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEMP MAIL | Pro Version</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: { background: '#030712', surface: '#0f172a', accent: '#6366f1', cyan: '#06b6d4' },
+                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'slide-up': 'slideUp 0.3s ease-out' },
+                    keyframes: { slideUp: { '0%': { transform: 'translateY(10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } } }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-header {
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .loader {
+            border: 2px solid rgba(99, 102, 241, 0.1);
+            border-left-color: #6366f1;
+            border-radius: 50%;
+            width: 16px; height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .email-overlay { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
+        .email-overlay.open { transform: translateX(0); }
+    </style>
+</head>
+<body class="bg-background text-slate-300 font-sans h-screen flex flex-col overflow-hidden selection:bg-accent selection:text-white">
+
+    <header class="glass-header h-16 flex items-center justify-between px-4 md:px-6 shrink-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-accent to-cyan flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-shield-halved text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-white tracking-tight leading-none">TEMP MAIL <span class="text-xs text-cyan font-normal bg-cyan/10 px-1.5 py-0.5 rounded border border-cyan/20 ml-1">PRO</span></h1>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <span id="api-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-slow"></span>
+                    <span id="api-status-text" class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">SYSTEM OPTIMAL</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-new-identity" class="group relative px-4 py-2 rounded-lg bg-surface border border-white/10 hover:border-accent/50 hover:bg-accent/10 transition-all duration-200 overflow-hidden">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-user-secret text-accent group-hover:text-white transition-colors"></i>
+                <span class="text-sm font-medium text-slate-300 group-hover:text-white">New Identity</span>
+            </div>
+        </button>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden relative">
+        <aside class="w-full md:w-80 lg:w-96 glass-panel border-y-0 border-l-0 border-r flex flex-col z-40">
+            <div class="p-4 border-b border-white/5 bg-surface/50">
+                <label class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-1.5 block">Active Secure Address</label>
+                <div class="relative group">
+                    <div id="current-email" class="font-mono text-sm text-cyan truncate pr-8 cursor-pointer hover:text-white transition-colors select-all" title="Click to copy">Loading...</div>
+                    <button id="btn-copy-email" class="absolute right-0 top-0 text-slate-500 hover:text-white transition-colors"><i class="fa-regular fa-copy"></i></button>
+                    <div id="copy-tooltip" class="absolute -top-8 left-1/2 -translate-x-1/2 bg-accent text-white text-xs py-1 px-2 rounded opacity-0 transition-opacity pointer-events-none">Copied!</div>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button id="btn-refresh" class="flex-1 py-1.5 px-3 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-slate-300 transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                    <span class="text-[10px] text-slate-600">AUTO-REFRESH</span>
+                    <div class="w-full max-w-[100px] h-1 bg-white/5 rounded-full overflow-hidden ml-2">
+                        <div id="refresh-progress" class="h-full bg-accent w-full transition-all duration-1000 ease-linear"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="message-list" class="flex-1 overflow-y-auto">
+                <div class="h-full flex flex-col items-center justify-center p-8 text-center opacity-50"><i class="fa-regular fa-envelope-open text-2xl mb-4"></i><p class="text-sm">Waiting for incoming messages...</p></div>
+            </div>
+        </aside>
+
+        <section id="email-view" class="absolute inset-0 md:static md:flex-1 bg-background z-50 md:z-auto email-overlay md:transform-none flex flex-col">
+            <div class="md:hidden h-14 flex items-center px-4 border-b border-white/10 bg-surface">
+                <button id="btn-back" class="mr-4 text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="font-medium text-slate-200">Message Details</span>
+            </div>
+            <div id="email-content-placeholder" class="hidden md:flex flex-col items-center justify-center h-full text-center opacity-30 select-none">
+                <i class="fa-solid fa-shield-virus text-6xl mb-6 text-slate-600"></i>
+                <h3 class="text-xl font-medium text-slate-500">Secure Environment Ready</h3>
+                <p class="text-slate-600 mt-2 max-w-xs">Select a message from the sidebar to view its contents safely.</p>
+            </div>
+            <div id="email-content-container" class="hidden flex-col h-full">
+                <div class="p-6 border-b border-white/10 bg-surface/30 backdrop-blur-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 id="email-subject" class="text-xl font-semibold text-white leading-tight"></h2>
+                        <span id="email-date" class="text-xs text-slate-500 font-mono shrink-0 ml-4"></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center border border-white/10 text-slate-300 font-bold text-lg" id="sender-avatar">?</div>
+                        <div class="flex-1 min-w-0">
+                            <span id="email-from-name" class="font-medium text-slate-200 truncate block"></span>
+                            <div class="text-xs text-slate-500 mt-0.5">To: <span class="text-slate-400">Me</span></div>
+                        </div>
+                    </div>
+                    <div id="attachments-area" class="mt-4 flex flex-wrap gap-2 empty:hidden"></div>
+                </div>
+                <div class="flex-1 bg-white relative">
+                    <iframe id="email-frame" class="w-full h-full absolute inset-0 border-none" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"></iframe>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_URLS = ['https://api.mail.tm', 'https://api.mail.gw'];
+        let currentApiUrl = localStorage.getItem('tm_api_url') || API_URLS[0];
+        let token = localStorage.getItem('tm_token');
+        let account = JSON.parse(localStorage.getItem('tm_account') || 'null');
+        let countdownInterval, messages = [];
+
+        const els = {
+            currentEmail: document.getElementById('current-email'),
+            messageList: document.getElementById('message-list'),
+            btnNewIdentity: document.getElementById('btn-new-identity'),
+            btnRefresh: document.getElementById('btn-refresh'),
+            btnCopy: document.getElementById('btn-copy-email'),
+            copyTooltip: document.getElementById('copy-tooltip'),
+            refreshProgress: document.getElementById('refresh-progress'),
+            apiStatusDot: document.getElementById('api-status-dot'),
+            apiStatusText: document.getElementById('api-status-text'),
+            emailView: document.getElementById('email-view'),
+            btnBack: document.getElementById('btn-back'),
+            emailPlaceholder: document.getElementById('email-content-placeholder'),
+            emailContainer: document.getElementById('email-content-container'),
+            emailSubject: document.getElementById('email-subject'),
+            emailDate: document.getElementById('email-date'),
+            emailFrom: document.getElementById('email-from-name'),
+            senderAvatar: document.getElementById('sender-avatar'),
+            emailFrame: document.getElementById('email-frame'),
+            attachmentsArea: document.getElementById('attachments-area')
+        };
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            try {
+                const res = await fetch(`${currentApiUrl}${endpoint}`, { method, headers, body: body ? JSON.stringify(body) : null });
+                if (!res.ok) {
+                    if (res.status === 401 && endpoint !== '/token') {
+                        token = null; account = null;
+                        localStorage.removeItem('tm_token'); localStorage.removeItem('tm_account');
+                        createAccount(); throw new Error('Auth Reset');
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.status !== 204 ? await res.json() : null;
+            } catch (err) { throw err; }
+        }
+
+        async function initFailover() {
+            for (const url of API_URLS) {
+                try {
+                    const res = await fetch(`${url}/domains`);
+                    if (res.ok) {
+                        currentApiUrl = url; localStorage.setItem('tm_api_url', url);
+                        updateStatus(true); return true;
+                    }
+                } catch (e) { console.warn(`API Down: ${url}`); }
+            }
+            updateStatus(false); return false;
+        }
+
+        function updateStatus(isOnline) {
+            els.apiStatusDot.className = `w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse-slow' : 'bg-red-500'}`;
+            els.apiStatusText.textContent = isOnline ? 'SYSTEM OPTIMAL' : 'OFFLINE';
+        }
+
+        async function createAccount() {
+            try {
+                els.btnNewIdentity.innerHTML = '<span class="loader"></span> Creating...';
+                const domainData = await apiRequest('/domains');
+                const domains = domainData['hydra:member'] || [];
+                if (domains.length === 0) throw new Error('No domains');
+                const domain = domains[Math.floor(Math.random() * domains.length)].domain;
+                const address = `${Math.random().toString(36).substring(2, 12)}@${domain}`;
+                const password = Math.random().toString(36).substring(2, 15);
+                await apiRequest('/accounts', 'POST', { address, password });
+                const tokenData = await apiRequest('/token', 'POST', { address, password });
+                token = tokenData.token; account = { address, password };
+                localStorage.setItem('tm_token', token); localStorage.setItem('tm_account', JSON.stringify(account));
+                renderAccountInfo(); loadMessages();
+            } catch (err) {
+                const isSwitched = await initFailover();
+                if (isSwitched) setTimeout(createAccount, 500);
+            } finally {
+                els.btnNewIdentity.innerHTML = `<i class="fa-solid fa-user-secret text-accent"></i> <span class="text-sm font-medium">New Identity</span>`;
+            }
+        }
+
+        function renderAccountInfo() { els.currentEmail.textContent = account ? account.address : 'No Identity'; }
+
+        async function loadMessages() {
+            if (!token) return;
+            const icon = els.btnRefresh.querySelector('i');
+            if (icon) icon.classList.add('animate-spin');
+            try {
+                const data = await apiRequest('/messages');
+                const newMessages = data['hydra:member'] || [];
+                if (JSON.stringify(newMessages) !== JSON.stringify(messages)) { messages = newMessages; renderMessageList(); }
+            } catch (err) { console.error(err); }
+            finally { if (icon) setTimeout(() => icon.classList.remove('animate-spin'), 500); resetCountdown(); }
+        }
+
+        function renderMessageList() {
+            els.messageList.innerHTML = '';
+            if (messages.length === 0) {
+                els.messageList.innerHTML = `<div class="h-full flex flex-col items-center justify-center p-8 text-center opacity-50"><i class="fa-regular fa-envelope-open text-2xl mb-4"></i><p class="text-sm">Waiting for incoming messages...</p></div>`;
+                return;
+            }
+            messages.forEach(msg => {
+                const el = document.createElement('div');
+                el.className = `p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors group ${msg.seen ? 'opacity-70' : 'bg-accent/5 border-l-2 border-l-accent'}`;
+                el.innerHTML = `<div class="flex justify-between items-start mb-1"><span class="font-medium text-sm text-slate-200 truncate pr-2">${msg.from.name || msg.from.address}</span><span class="text-[10px] font-mono text-slate-500">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div><div class="text-xs font-medium text-cyan truncate mb-1">${msg.subject || '(No Subject)'}</div><div class="text-xs text-slate-500 truncate">${msg.intro || '...'}</div>`;
+                el.onclick = () => openMessage(msg.id);
+                els.messageList.appendChild(el);
+            });
+        }
+
+        async function openMessage(id) {
+            if (window.innerWidth < 768) els.emailView.classList.add('open');
+            els.emailPlaceholder.classList.add('hidden'); els.emailContainer.classList.remove('hidden'); els.emailContainer.classList.add('flex');
+            els.emailSubject.textContent = 'Decrypting...'; els.emailFrame.srcdoc = '';
+            try {
+                const msg = await apiRequest(`/messages/${id}`);
+                els.emailSubject.textContent = msg.subject || '(No Subject)';
+                els.emailDate.textContent = new Date(msg.createdAt).toLocaleString();
+                els.emailFrom.textContent = msg.from.name || msg.from.address;
+                els.senderAvatar.textContent = (msg.from.name || msg.from.address).charAt(0).toUpperCase();
+                els.attachmentsArea.innerHTML = '';
+                if (msg.attachments) {
+                    msg.attachments.forEach(att => {
+                        const btn = document.createElement('a');
+                        btn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded bg-surface border border-white/10 text-xs text-slate-300 hover:border-accent cursor-pointer';
+                        btn.innerHTML = `<i class="fa-solid fa-paperclip"></i> ${att.filename}`;
+                        btn.onclick = async (e) => {
+                            e.preventDefault();
+                            const res = await fetch(`${currentApiUrl}${att.downloadUrl}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                            const blob = await res.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a'); a.href = url; a.download = att.filename; a.click();
+                        };
+                        els.attachmentsArea.appendChild(btn);
+                    });
+                }
+                els.emailFrame.srcdoc = `<style>body { font-family: sans-serif; padding: 20px; color: #1a202c; line-height: 1.6; } a { color: #6366f1; }</style>${msg.html ? msg.html[0] : (msg.text || 'No content')}`;
+                msg.seen = true;
+            } catch (err) { els.emailSubject.textContent = 'Error Loading Message'; }
+        }
+
+        function resetCountdown() {
+            if (els.refreshProgress) {
+                els.refreshProgress.style.transition = 'none'; els.refreshProgress.style.width = '100%';
+                setTimeout(() => { els.refreshProgress.style.transition = 'width 10000ms linear'; els.refreshProgress.style.width = '0%'; }, 50);
+            }
+            clearInterval(countdownInterval); countdownInterval = setInterval(loadMessages, 10000);
+        }
+
+        els.btnNewIdentity.onclick = () => { if(confirm('Generate a new identity?')) createAccount(); };
+        els.btnRefresh.onclick = loadMessages;
+        els.btnCopy.onclick = () => { if (account) { navigator.clipboard.writeText(account.address); els.copyTooltip.style.opacity = '1'; setTimeout(() => els.copyTooltip.style.opacity = '0', 2000); } };
+        els.btnBack.onclick = () => els.emailView.classList.remove('open');
+
+        (async () => { await initFailover(); if (token && account) { renderAccountInfo(); loadMessages(); } else { createAccount(); } resetCountdown(); })();
+    </script>
+</body>
+</html>
